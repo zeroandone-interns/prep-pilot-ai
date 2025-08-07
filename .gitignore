@@ -1,0 +1,32 @@
+# VS Code
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+
+# Pytest
+.cache/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Environment variable files
+.env
+*.env
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
