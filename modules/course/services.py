@@ -1,7 +1,7 @@
 import json
 from extensions import db
 from modules.shared.services.bedrock import Bedrock
-from modules.document.entity import Document, DocumentChunk
+from modules.document.entity import Documents, DocumentChunks
 from modules.document.entity import Modules, Sections, FlashCards, Questions, Courses
 
 
@@ -16,7 +16,7 @@ class CourseContentService:
         return course
 
     def get_course_documents(self, course_id):
-        return Document.query.filter_by(course_id=course_id).all()
+        return Documents.query.filter_by(course_id=course_id).all()
 
     def combine_course_content(self, documents):
         return "\n".join(doc.content for doc in documents if doc.content)

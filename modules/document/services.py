@@ -1,7 +1,7 @@
 import os, json, uuid, base64
 from modules.shared.services.s3 import S3Client
 from modules.shared.services.bedrock import Bedrock
-from modules.document.entity import Document, DocumentChunk
+from modules.document.entity import Documents, DocumentChunks
 from docx import Document as DocxDocument
 from chonkie import SentenceChunker
 from extensions import db
@@ -116,12 +116,13 @@ class DocumentProcessingService:
         return embedding
 
     def save_document(self, course_id, s3_key, content, doc_type):
-        doc_id = str(uuid.uuid4())
-        doc = Document(
-            id=doc_id,
+        doc = Documents(
             course_id=course_id,
             s3_key=s3_key,
-            content=content,
+            language="en",
+            content_en=content,
+            content_fr=content,
+            content_ar=content,
             type=doc_type,
         )
         db.session.add(doc)
@@ -131,12 +132,11 @@ class DocumentProcessingService:
     def save_chunks(self, document_id, chunks):
         for chunk in chunks:
             embedding = self.generate_embedding(chunk["text"])
-            chunk_entity = DocumentChunk(
-                id=str(uuid.uuid4()),
+            chunk_entity = DocumentChunks(
                 document_id=document_id,
                 text=chunk["text"],
                 tokens=chunk["tokens"],
-                embeddings=embedding,
+                embeddings_en=embedding,
             )
             db.session.add(chunk_entity)
         db.session.commit()

@@ -1,6 +1,6 @@
-import json, uuid
+import json
 from modules.shared.services.bedrock import Bedrock
-from modules.document.entity import DocumentChunk, ChatMessage
+from modules.document.entity import DocumentChunks, ChatMessage
 from extensions import db
 
 
@@ -17,7 +17,6 @@ class ChatbotService:
 
     def save_message(self, session_id, message, sender):
         msg = ChatMessage(
-            id=str(uuid.uuid4()),
             message=message,
             sender=sender,
             session_id=session_id,
@@ -40,7 +39,7 @@ class ChatbotService:
     def get_chat_history(self, session_id, limit=10):
         history = (
             ChatMessage.query.filter_by(session_id=session_id)
-            .order_by(ChatMessage.createdAt.desc())
+            .order_by(ChatMessage.created_at.desc())
             .limit(limit)
             .all()
         )
@@ -48,8 +47,8 @@ class ChatbotService:
 
     def retrieve_similar_chunks(self, embedding, top_k=5):
         return (
-            db.session.query(DocumentChunk)
-            .order_by(DocumentChunk.embeddings.op("<=>")(embedding))
+            db.session.query(DocumentChunks)
+            .order_by(DocumentChunks.embeddings_en.op("<=>")(embedding))
             .limit(top_k)
             .all()
         )
