@@ -99,24 +99,17 @@ class ChatbotService:
         return model_response["content"][0]["text"]
 
     def handle_message(self, session_id, message):
-        print("Handling message for session:", session_id)
 
         self.save_message(session_id, message, "User")
-        print("Received message:", message)
 
         embedding = self.generate_embedding(message)
-        print("Generated embedding:", embedding)
 
         history = self.get_chat_history(session_id)
-        print("Retrieved chat history:", history)
 
         retrieved_chunks = self.retrieve_similar_chunks(embedding)
-        print("Retrieved similar chunks:", retrieved_chunks)
 
         response_text = self.generate_response(message, history, retrieved_chunks)
-        print("Generated response:", response_text)
 
         self.save_message(session_id, response_text, "Assistant")
-        print("Saved assistant response to database")
 
         return response_text

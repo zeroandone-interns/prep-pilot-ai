@@ -1,4 +1,4 @@
-import os, json, uuid, base64
+import os, json, base64
 from modules.shared.services.s3 import S3Client
 from modules.shared.services.bedrock import Bedrock
 from modules.document.entity import Documents, DocumentChunks
@@ -6,7 +6,6 @@ from docx import Document as DocxDocument
 from chonkie import SentenceChunker
 from extensions import db
 import pdfplumber
-from sqlalchemy import func
 
 
 class DocumentProcessingService:
@@ -121,8 +120,8 @@ class DocumentProcessingService:
             s3_key=s3_key,
             language="en",
             content_en=content,
-            content_fr=content,
-            content_ar=content,
+            content_fr="content_fr",
+            content_ar="content_ar",
             type=doc_type,
         )
         db.session.add(doc)

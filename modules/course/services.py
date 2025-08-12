@@ -19,12 +19,13 @@ class CourseContentService:
         return Documents.query.filter_by(course_id=course_id).all()
 
     def combine_course_content(self, documents):
-        return "\n".join(doc.content for doc in documents if doc.content)
+        return "\n".join(doc.content_en for doc in documents if doc.content_en)
 
     def bedrock_generate(self, prompt):
         request_body = {
             "anthropic_version": "bedrock-2023-05-31",
             "temperature": 0.5,
+            "max_tokens": 10000,
             "messages": [
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
@@ -104,10 +105,13 @@ class CourseContentService:
 
     def generate_course_structure(self, course_id):
         course = self.get_course_details(course_id)
+        print("Generating course structure for:", course.title)
         documents = self.get_course_documents(course_id)
+        print("Retrieved documents for course:", len(documents))
         course_text = self.combine_course_content(documents)
-
+        print("Combined course content:", (course_text))
         modules_data = self.generate_modules(course, course_text)
+        print("Generated modules data:", modules_data)
         results = []
 
         for module_data in modules_data:
@@ -127,15 +131,21 @@ class CourseContentService:
                     is_complete=False,
                 )
                 db.session.add(section_entity)
-
+            """
             # Flashcards
             flashcards_data = self.generate_flashcards(module_data["summary"])
-            for fc in flashcards_data:
-                flashcard_entity = FlashCards(
-                    module_id=module_entity.id, front_1=fc["front"], back_1=fc["back"]
-                )
-                db.session.add(flashcard_entity)
 
+            flashcard_entity = FlashCards(
+                module_id=module_entity.id,
+                question_1=flashcards_data[0]["front"],
+                answer_1=flashcards_data[0]["back"],
+                question_2=flashcards_data[1]["front"],
+                answer_2=flashcards_data[1]["back"],
+                question_3=flashcards_data[2]["front"],
+                answer_3=flashcards_data[2]["back"],
+            )
+            db.session.add(flashcard_entity)
+            """
             # Questions
             questions_data = self.generate_questions(module_data["summary"])
             for q in questions_data:
@@ -154,7 +164,7 @@ class CourseContentService:
                 {
                     "module": module_data["title"],
                     "sections": sections_data,
-                    "flashcards": flashcards_data,
+                    # "flashcards": flashcards_data,
                     "questions": questions_data,
                 }
             )
