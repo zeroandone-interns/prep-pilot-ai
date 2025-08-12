@@ -1,15 +1,27 @@
-from flask import Flask
-from modules.document import routes
+from flask import Flask, jsonify
+from flask_cors import CORS
+from flask_migrate import Migrate
+from dotenv import load_dotenv
+from extensions import db
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 
-routes.register_document_routes(app)
+CORS(app)
 
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DB_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-@app.route("/")
-def hello_world():
-    return "Hello, World!"
+db.init_app(app)
+migrate = Migrate(app, db)
 
+from modules.document import routes as document_routes
+from modules.chatbot import routes as chatbot_routes
+
+document_routes.register_document_routes(app)
+chatbot_routes.register_chatbot_routes(app)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
