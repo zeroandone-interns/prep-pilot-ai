@@ -1,66 +1,72 @@
 import os
-from modules.shared.services.s3 import S3Client
+from modules.shared.services.s3 import S3Service
 from modules.shared.services.bedrock import Bedrock
-from modules.document.prompts import image_prompt
+from modules.document.prompts import image_prompt, text_prompt
 from modules.document.entity import Documents, DocumentChunks
 from modules.shared.services.translation import TranslationService
-from docx import Document as DocxDocument
 from chonkie import SentenceChunker
 from extensions import db
-import pdfplumber
 
 
 class DocumentProcessingService:
     def __init__(self):
-        self.s3_service = S3Client()
-        self.bedrock = Bedrock()
+        self.s3_service = S3Service()
+        self.bedrock_service = Bedrock()
         self.translate_service = TranslationService()
 
-    def extract_text_from_pdf(self, file_path):
-        full_text = ""
-        with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                text = page.extract_text()
-                if text:
-                    full_text += text + "\n"
-        return full_text.strip()
 
-    def extract_text_from_docx(self, file_path):
-        doc = DocxDocument(file_path)
-        return "\n".join(para.text for para in doc.paragraphs).strip()
+    def process_documents_for_course(self, bucket_name="34324"):
+        bucket_exists = self.s3_service.check_if_bucket_exists()
+        if not bucket_exists:
+            self.logger.error(f"[S3] Bucket '{bucket_name}' does not exist.")
+            return
+        
+        folder_exists = self.s3_service.check_if_folder_exists(bucket_name)
+        if not folder_exists:
+            self.logger.error(f"[S3] Folder '{bucket_name}' does not exist.")
+            return
+        
+        file_keys = self.s3_service.check_if_folder_has_files(bucket_name)
+        if not file_keys:
+            self.logger.error(f"[S3] No files found in folder '{bucket_name}'.")
+            return
 
-    def extract_text_from_txt(self, file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            return f.read().strip()
+        for file_key in file_keys:
+            file_name, ext = os.path.splitext(file_key)
+            ext = ext.lower()
+            if ext == ".pdf" or ext == ".docx" or ext == ".txt" or ext == ".md":
+                text = self.bedrock_service.invoke_model_with_text(ext, text_prompt)
+                self.process_file(text, ext, bucket_name, file_key)
+            elif ext in [".jpg", ".jpeg", ".png"]:
+                text = self.bedrock_service.invoke_image(ext, image_prompt)
+                self.process_file(text, ext, bucket_name, file_key)
+            else:
+                raise ValueError(f"Unsupported text file type: {ext}")
 
-    def extract_text(self, file_path):
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext == ".pdf":
-            return self.extract_text_from_pdf(file_path)
-        elif ext == ".docx":
-            return self.extract_text_from_docx(file_path)
-        elif ext == ".txt":
-            return self.extract_text_from_txt(file_path)
-        else:
-            raise ValueError(f"Unsupported text file type: {ext}")
 
-    def analyze_image(self, file_path, image_prompt):
-        return self.bedrock.invoke_image(file_path, image_prompt)
 
-    def chunk_text(self, text, chunk_size=500, chunk_overlap=50):
-        chunker = SentenceChunker(
-            tokenizer_or_token_counter="gpt2",
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            min_sentences_per_chunk=1,
-        )
-        chunks = chunker.chunk(text)
-        return [{"text": c.text, "tokens": c.token_count} for c in chunks]
+    def process_file(self, text, ext, bucket_name, file_key):
+        s3_uri = f"s3://{self.s3_service.head_bucket_name}/{bucket_name}/{file_key}"
+        # Translate the text into multiple languages
+        content_en, content_fr, content_ar = (
+                self.translate_service.translate_to_all_languages(text)
+            )
+        # Save Documents in DB
+        document = self._save_document(
+                bucket_name, s3_uri, content_en, content_fr, content_ar, ext
+            )
+        # Chunk the text into smaller pieces
+        chunks = self._chunk_text(text)
+        # Save Chunks in DB
+        self._save_chunks(document.id, chunks)
+        return {"s3_key": s3_uri, "status": "processed"}
+           
 
-    def generate_embedding(self, text):
-        return self.bedrock.generate_embedding(text)
 
-    def save_document(self, course_id, s3_key, content_en, content_fr, content_ar, doc_type):
+
+    def _save_document(
+        self, course_id, s3_key, content_en, content_fr, content_ar, doc_type
+    ):
         doc = Documents(
             course_id=course_id,
             s3_key=s3_key,
@@ -74,9 +80,20 @@ class DocumentProcessingService:
         db.session.commit()
         return doc
 
-    def save_chunks(self, document_id, chunks):
+    def _chunk_text(self, text, chunk_size=500, chunk_overlap=50):
+        chunker = SentenceChunker(
+            tokenizer_or_token_counter="gpt2",
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            min_sentences_per_chunk=1,
+        )
+        chunks = chunker.chunk(text)
+        return [{"text": c.text, "tokens": c.token_count} for c in chunks]
+
+
+    def _save_chunks(self, document_id, chunks):
         for chunk in chunks:
-            embedding = self.generate_embedding(chunk["text"])
+            embedding = self.bedrock_service.generate_embedding(chunk["text"])
             chunk_entity = DocumentChunks(
                 document_id=document_id,
                 text=chunk["text"],
@@ -86,65 +103,4 @@ class DocumentProcessingService:
             db.session.add(chunk_entity)
         db.session.commit()
 
-    def process_text_document(self, course_id, s3_uri):
-        downloaded_file = self.s3_service.download_file_from_s3_uri(s3_uri)
-        try:
-            text = self.extract_text(downloaded_file)
-            content_en, content_fr, content_ar = self.translate_service.translate_to_all_languages(text)
-            doc_type = os.path.splitext(s3_uri)[1].lower()
-            document = self.save_document(course_id, s3_uri, content_en, content_fr, content_ar, doc_type)
-            chunks = self.chunk_text(text)
-            self.save_chunks(document.id, chunks)
-            return {"s3_key": s3_uri, "status": "processed"}
-        finally:
-            if downloaded_file and os.path.exists(downloaded_file):
-                os.remove(downloaded_file)
 
-    def process_image_document(self, course_id, s3_uri):
-        downloaded_file = self.s3_service.download_file_from_s3_uri(s3_uri)
-        try:
-            content = self.analyze_image(downloaded_file, image_prompt)
-            doc_type = os.path.splitext(s3_uri)[1].lower()
-            content_en, content_fr, content_ar = self.translate_service.translate_to_all_languages(content)
-            document = self.save_document(course_id, s3_uri, content_en, content_fr, content_ar, doc_type)
-            chunks = self.chunk_text(content)
-            self.save_chunks(document.id, chunks)
-            return {"s3_key": s3_uri, "status": "processed"}
-        finally:
-            if downloaded_file and os.path.exists(downloaded_file):
-                os.remove(downloaded_file)
-
-    def process_documents(self, course_id, documents):
-        results = []
-        for s3_uri in documents:
-            if not isinstance(s3_uri, str):
-                results.append(
-                    {"s3_key": None, "error": "Each document must be an S3 URI string"}
-                )
-                continue
-            ext = os.path.splitext(s3_uri)[1].lower()
-            try:
-                if ext in [".pdf", ".docx", ".txt"]:
-                    result = self.process_text_document(course_id, s3_uri)
-                elif ext in [".jpg", ".jpeg", ".png"]:
-                    result = self.process_image_document(course_id, s3_uri)
-                else:
-                    result = {
-                        "s3_key": s3_uri,
-                        "error": f"Unsupported file extension: {ext}",
-                    }
-                results.append(result)
-            except Exception as e:
-                db.session.rollback()
-                results.append({"s3_key": s3_uri, "error": str(e)})
-        return results
-
-    def translate_service(self, documents):
-        for doc in documents:
-            if "error" not in doc:
-                en_text, fr_text, ar_text = self.translate_service.translate_to_all_languages(doc["content"])
-                doc["content_en"] = en_text
-                doc["content_fr"] = fr_text
-                doc["content_ar"] = ar_text
-                
-        return documents

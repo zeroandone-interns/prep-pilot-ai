@@ -6,6 +6,8 @@ from modules.document.schema import validate_request
 def document_processing_controller():
     data = request.get_json()
 
+    
+
     service = DocumentProcessingService()
 
     valid, error = validate_request(data)
