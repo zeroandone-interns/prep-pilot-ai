@@ -3,6 +3,7 @@ from modules.shared.services.s3 import S3Client
 from modules.shared.services.bedrock import Bedrock
 from modules.document.prompts import image_prompt
 from modules.document.entity import Documents, DocumentChunks
+from modules.shared.services.translation import TranslationService
 from docx import Document as DocxDocument
 from chonkie import SentenceChunker
 from extensions import db
@@ -13,6 +14,7 @@ class DocumentProcessingService:
     def __init__(self):
         self.s3_service = S3Client()
         self.bedrock = Bedrock()
+        self.translate_service = TranslationService()
 
     def extract_text_from_pdf(self, file_path):
         full_text = ""
@@ -58,14 +60,14 @@ class DocumentProcessingService:
     def generate_embedding(self, text):
         return self.bedrock.generate_embedding(text)
 
-    def save_document(self, course_id, s3_key, content, doc_type):
+    def save_document(self, course_id, s3_key, content_en, content_fr, content_ar, doc_type):
         doc = Documents(
             course_id=course_id,
             s3_key=s3_key,
             language="en",
-            content_en=content,
-            content_fr="content_fr",
-            content_ar="content_ar",
+            content_en=content_en,
+            content_fr=content_fr,
+            content_ar=content_ar,
             type=doc_type,
         )
         db.session.add(doc)
@@ -88,8 +90,9 @@ class DocumentProcessingService:
         downloaded_file = self.s3_service.download_file_from_s3_uri(s3_uri)
         try:
             text = self.extract_text(downloaded_file)
+            content_en, content_fr, content_ar = self.translate_service.translate_to_all_languages(text)
             doc_type = os.path.splitext(s3_uri)[1].lower()
-            document = self.save_document(course_id, s3_uri, text, doc_type)
+            document = self.save_document(course_id, s3_uri, content_en, content_fr, content_ar, doc_type)
             chunks = self.chunk_text(text)
             self.save_chunks(document.id, chunks)
             return {"s3_key": s3_uri, "status": "processed"}
@@ -102,7 +105,8 @@ class DocumentProcessingService:
         try:
             content = self.analyze_image(downloaded_file, image_prompt)
             doc_type = os.path.splitext(s3_uri)[1].lower()
-            document = self.save_document(course_id, s3_uri, content, doc_type)
+            content_en, content_fr, content_ar = self.translate_service.translate_to_all_languages(content)
+            document = self.save_document(course_id, s3_uri, content_en, content_fr, content_ar, doc_type)
             chunks = self.chunk_text(content)
             self.save_chunks(document.id, chunks)
             return {"s3_key": s3_uri, "status": "processed"}
@@ -134,3 +138,13 @@ class DocumentProcessingService:
                 db.session.rollback()
                 results.append({"s3_key": s3_uri, "error": str(e)})
         return results
+
+    def translate_service(self, documents):
+        for doc in documents:
+            if "error" not in doc:
+                en_text, fr_text, ar_text = self.translate_service.translate_to_all_languages(doc["content"])
+                doc["content_en"] = en_text
+                doc["content_fr"] = fr_text
+                doc["content_ar"] = ar_text
+                
+        return documents
