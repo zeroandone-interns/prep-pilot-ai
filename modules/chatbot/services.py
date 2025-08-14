@@ -1,6 +1,7 @@
 import json
 from modules.shared.services.bedrock import Bedrock
 from modules.document.entity import DocumentChunks, ChatMessage
+from modules.chatbot.prompts import CHATBOT_RESPONSE_PROMPT
 from extensions import db
 
 
@@ -26,15 +27,7 @@ class ChatbotService:
         return msg
 
     def generate_embedding(self, text):
-        payload = {"inputText": text}
-        response = self.bedrock.client.invoke_model(
-            modelId="amazon.titan-embed-text-v2:0",
-            contentType="application/json",
-            accept="application/json",
-            body=json.dumps(payload),
-        )
-        result = response["body"].read()
-        return json.loads(result)["embedding"]
+        return self.bedrock.generate_embedding(text)
 
     def get_chat_history(self, session_id, limit=10):
         history = (
@@ -57,55 +50,21 @@ class ChatbotService:
         context_text = "\n".join(chunk.text for chunk in retrieved_chunks)
         history_text = "\n".join(f"{msg.sender}: {msg.message}" for msg in history)
 
-        prompt = f"""You are an expert AI assistant that answers questions by carefully using ONLY the information provided in the context and chat history below.
-
-        Relevant context:
-        {context_text}
-
-        Chat history:
-        {history_text}
-
-        User message:
-        {message}
-
-        Please follow these rules when answering:
-        1. Use ONLY the Context and Chat History to answer. Do NOT add any information that is not supported by these.
-        2. If the Context does not contain enough information to answer, reply politely:
-        "I'm sorry, I don't have enough information to answer that."
-        3. Provide clear, concise, and easy-to-understand answers.
-        4. Avoid special words or expressions unless the user uses it first.
-        5. Be polite and helpful at all times.
-
-        Provide the best possible answer based on the context and history.
-        Answer:
-        """
+        prompt = CHATBOT_RESPONSE_PROMPT.format(
+            context=context_text, history=history_text, message=message
+        )
 
         print("Generated prompt:", prompt)
 
-        native_request = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "temperature": 0.5,
-            "max_tokens": 1536,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-
-        response = self.bedrock.client.invoke_model(
-            modelId=self.bedrock.model_id,
-            contentType="application/json",
-            body=json.dumps(native_request),
+        return self.bedrock.invoke_model_with_text(
+            prompt, temperature=0.5, max_tokens=1536
         )
 
-        model_response = json.loads(response["body"].read())
-        return model_response["content"][0]["text"]
-
     def handle_message(self, session_id, message):
-
         self.save_message(session_id, message, "User")
 
         embedding = self.generate_embedding(message)
-
         history = self.get_chat_history(session_id)
-
         retrieved_chunks = self.retrieve_similar_chunks(embedding)
 
         response_text = self.generate_response(message, history, retrieved_chunks)

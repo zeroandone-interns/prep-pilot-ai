@@ -1,6 +1,7 @@
-import os, json, base64
+import os
 from modules.shared.services.s3 import S3Client
 from modules.shared.services.bedrock import Bedrock
+from modules.document.prompts import image_prompt
 from modules.document.entity import Documents, DocumentChunks
 from docx import Document as DocxDocument
 from chonkie import SentenceChunker
@@ -12,15 +13,6 @@ class DocumentProcessingService:
     def __init__(self):
         self.s3_service = S3Client()
         self.bedrock = Bedrock()
-
-    def validate_request(self, data):
-        if not data:
-            return False, "No JSON payload provided"
-        if "course_id" not in data or "documents" not in data:
-            return False, "Missing required fields: course_id, documents"
-        if not isinstance(data["documents"], list):
-            return False, "'documents' must be a list"
-        return True, None
 
     def extract_text_from_pdf(self, file_path):
         full_text = ""
@@ -51,46 +43,7 @@ class DocumentProcessingService:
             raise ValueError(f"Unsupported text file type: {ext}")
 
     def analyze_image(self, file_path, image_prompt):
-        with open(file_path, "rb") as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode()
-
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext in [".jpg", ".jpeg"]:
-            media_type = "image/jpeg"
-        elif ext == ".png":
-            media_type = "image/png"
-        else:
-            media_type = "application/octet-stream"
-
-        payload = {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": encoded_image,
-                            },
-                        },
-                        {"type": "text", "text": image_prompt},
-                    ],
-                }
-            ],
-            "max_tokens": 1000,
-            "anthropic_version": "bedrock-2023-05-31",
-        }
-
-        response = self.bedrock.client.invoke_model(
-            modelId=self.bedrock.model_id,
-            contentType="application/json",
-            body=json.dumps(payload),
-        )
-        output_binary = response["body"].read()
-        output_json = json.loads(output_binary)
-        return output_json.get("content", [{}])[0].get("text", "[No response text]")
+        return self.bedrock.invoke_image(file_path, image_prompt)
 
     def chunk_text(self, text, chunk_size=500, chunk_overlap=50):
         chunker = SentenceChunker(
@@ -103,16 +56,7 @@ class DocumentProcessingService:
         return [{"text": c.text, "tokens": c.token_count} for c in chunks]
 
     def generate_embedding(self, text):
-        payload = {"inputText": text}
-        response = self.bedrock.client.invoke_model(
-            modelId="amazon.titan-embed-text-v2:0",
-            contentType="application/json",
-            accept="application/json",
-            body=json.dumps(payload),
-        )
-        result = response["body"].read()
-        embedding = json.loads(result)["embedding"]
-        return embedding
+        return self.bedrock.generate_embedding(text)
 
     def save_document(self, course_id, s3_key, content, doc_type):
         doc = Documents(
@@ -156,19 +100,6 @@ class DocumentProcessingService:
     def process_image_document(self, course_id, s3_uri):
         downloaded_file = self.s3_service.download_file_from_s3_uri(s3_uri)
         try:
-            image_prompt = """
-            You are an expert assistant skilled in both image captioning and text extraction (OCR).
-            Please perform the following tasks on the provided image:
-
-            1. Extract all readable text from the image accurately.
-            2. Provide a clear and concise descriptive caption summarizing the main content, objects, or scene in the image.
-
-            Format your response clearly with two sections:
-            Extracted text: [Insert all extracted text here]
-            Image caption: [Insert descriptive caption here]
-
-            Make sure the caption complements the extracted text and helps a person who cannot see the image understand its contents.
-            """
             content = self.analyze_image(downloaded_file, image_prompt)
             doc_type = os.path.splitext(s3_uri)[1].lower()
             document = self.save_document(course_id, s3_uri, content, doc_type)
