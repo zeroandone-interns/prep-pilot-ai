@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from modules.document.services import DocumentProcessingService
+from modules.document.schema import validate_request
 
 
 def document_processing_controller():
@@ -7,7 +8,7 @@ def document_processing_controller():
 
     service = DocumentProcessingService()
 
-    valid, error = service.validate_request(data)
+    valid, error = validate_request(data)
     if not valid:
         return jsonify({"error": error}), 400
 
