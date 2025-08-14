@@ -9,3 +9,10 @@ image_prompt = """
     Extracted text: [Insert all extracted text here]
     Image caption: [Insert descriptive caption here]
 """
+
+text_prompt = """
+    You are a helpful assistant skilled in text analysis and summarization.
+    Please perform the following tasks on the provided text:
+
+
+"""

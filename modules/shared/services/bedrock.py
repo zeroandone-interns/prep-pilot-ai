@@ -95,3 +95,7 @@ class Bedrock:
         )
         result = json.loads(response["body"].read())
         return result.get("embedding", [])
+
+    def invoke_pdf(self):
+        pass
+    

@@ -19,11 +19,11 @@ migrate = Migrate(app, db)
 
 from modules.document import routes as document_routes
 from modules.chatbot import routes as chatbot_routes
-from modules.course import routes as course_routes
+# from modules.course import routes as course_routes
 
 document_routes.register_document_routes(app)
 chatbot_routes.register_chatbot_routes(app)
-course_routes.register_course_routes(app)
+# course_routes.register_course_routes(app)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

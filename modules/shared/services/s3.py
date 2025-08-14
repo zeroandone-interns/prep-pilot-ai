@@ -1,41 +1,49 @@
 import boto3
-import tempfile
-import os
-from urllib.parse import urlparse
 from botocore.exceptions import ClientError
+from extensions import get_logger
 
 
-class S3Client:
-    def __init__(self, region_name="us-east-1"):
-        self.client = boto3.client("s3", region_name=region_name)
 
-    def _check_bucket_exists(self, bucket_name):
+class S3Service:
+    def __init__(self):
+        self.client = boto3.client('s3', region_name='us-east-1')
+        self.head_bucket_name = "instructor-documents-store/"
+        self.logger = get_logger(__name__)
+            
+    def check_if_bucket_exists(self):
+        return self.client.head_bucket(Bucket=self.head_bucket_name)
+
+    # Check if folder exists
+    def check_if_folder_exists(self, folder_prefix):
+        if not folder_prefix.endswith('/'):
+            folder_prefix += '/'
+
+        response = self.client.list_objects_v2(Bucket=self.head_bucket_name, Prefix=folder_prefix, MaxKeys=1)
+        contents = response['Contents'][0]['Key']
+
+        return contents
+    
+    # Check if folder has files abd return list of files
+    def check_if_folder_has_files(self, folder_name):
+        # self.logger.info(f"[S3] Checking if folder '{folder_name}' has files in bucket '{self.bucket_name}'")
+        if not folder_name.endswith('/'):
+            folder_name += '/'
+
+        response = self.client.list_objects_v2(Bucket=self.head_bucket_name, Prefix=folder_name)
+        contents = response.get('Contents', [])
+        
+        keys = [obj['Key'] for obj in contents]
+        self.logger.info(f"Keys: {keys if keys else 'No keys found'}")
+        
+        return keys
+            
+    def get_object_from_s3(self, object_key):
         try:
-            self.client.head_bucket(Bucket=bucket_name)
+            return self.client.get_object(Bucket=self.head_bucket_name, Key=object_key)
         except ClientError as e:
-            code = e.response["Error"]["Code"]
-            if code in ("404", "403"):
-                raise ValueError(
-                    f"Bucket '{bucket_name}' does not exist or access is denied"
-                )
+            if e.response['Error']['Code'] == 'NoSuchKey':
+                self.logger.error(f"[S3] Object '{object_key}' does not exist in bucket '{self.head_bucket_name}'")
+                raise ValueError(f"Object '{object_key}' does not exist in bucket '{self.head_bucket_name}'")
             raise
-
-    def download_file_from_s3_uri(self, s3_uri):
-        parsed = urlparse(s3_uri)
-        bucket = parsed.netloc
-        key = parsed.path.lstrip("/")
-        ext = os.path.splitext(key)[1].lower()
-
-        self._check_bucket_exists(bucket)
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-            temp_path = tmp.name
-
-        try:
-            self.client.download_file(bucket, key, temp_path)
-        except ClientError as e:
-            if e.response["Error"]["Code"] == "NoSuchKey":
-                raise ValueError(f"Object '{key}' does not exist in bucket '{bucket}'")
-            raise
-
-        return temp_path
+            
+        
