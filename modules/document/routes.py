@@ -8,3 +8,8 @@ def register_document_routes(app):
         view_func=controller.document_processing_controller,
         methods=["POST"],
     )
+    app.add_url_rule(
+        "/document",
+        view_func=controller.transcribe,
+        methods=["GET"],
+    )
