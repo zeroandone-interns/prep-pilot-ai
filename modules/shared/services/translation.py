@@ -55,8 +55,7 @@ class TranslationService:
         self.get_logger.info(f"Translating text...")
 
         detected_lang = detect(text)
-
-        # Ensure detected_lang is a string
+        self.get_logger.info(f"detected_lang: {detected_lang}")
         if not isinstance(detected_lang, str):
             detected_lang = str(detected_lang)
 

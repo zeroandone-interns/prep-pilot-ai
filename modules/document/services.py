@@ -68,9 +68,9 @@ class DocumentProcessingService:
             # Save Documents in DB
             document = self._save_document(folder_name, s3_uri, text, ext)
 
-            self.logger.info(f"Chunking text for document ID: {document.id}")
+            # self.logger.info(f"Chunking text for document ID: {document.id}")
             chunks = self._chunk_text(text)
-            self.logger.info(f"Number of chunks created: {len(chunks)}")
+            # self.logger.info(f"Number of chunks created: {chunks['text']}")
 
             for chunk in chunks:
                 self.logger.info(f"Chunking text in for loop")
