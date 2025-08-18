@@ -3,7 +3,7 @@ import base64
 import boto3
 
 
-class Bedrock:
+class BedrockService:
 
     def __init__(
         self,
@@ -96,6 +96,41 @@ class Bedrock:
         result = json.loads(response["body"].read())
         return result.get("embedding", [])
 
-    def invoke_pdf(self):
-        pass
-    
+    def invoke_document(self, doc_bytes, file_key, prompt, ext):
+        name = file_key.split("/")[-1].rsplit(".", 1)[0].replace(" ", "_")
+        ext = ext
+        format_map = {
+            ".pdf": "pdf",
+            ".docx": "docx",
+            ".doc": "doc",
+            ".md": "md",
+            ".txt": "txt",
+            ".html": "html",
+        }
+
+        if ext not in format_map:
+            raise ValueError(f"Unsupported document format: {ext}")
+        doc_message = {
+            "role": "user",
+            "content": [
+                {
+                    "document": {
+                        "name": name,
+                        "format": format_map[ext],
+                        "source": {"bytes": doc_bytes},
+                    }
+                },
+                {"text": prompt},
+            ],
+        }
+
+        response = self.client.converse(
+            modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+            messages=[doc_message],
+            inferenceConfig={
+                "maxTokens": 2000,
+                "temperature": 0,
+            },
+        )
+
+        return response["output"]["message"]["content"][0]["text"]

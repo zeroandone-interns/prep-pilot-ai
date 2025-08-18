@@ -1,5 +1,5 @@
 import json
-from modules.shared.services.bedrock import Bedrock
+from modules.shared.services.bedrock import BedrockService
 from modules.document.entity import DocumentChunks, ChatMessage
 from modules.chatbot.prompts import CHATBOT_RESPONSE_PROMPT
 from extensions import db
@@ -7,7 +7,7 @@ from extensions import db
 
 class ChatbotService:
     def __init__(self):
-        self.bedrock = Bedrock()
+        self.bedrock = BedrockService()
 
     def validate_request(self, data):
         if not data:

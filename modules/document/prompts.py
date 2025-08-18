@@ -11,8 +11,7 @@ image_prompt = """
 """
 
 text_prompt = """
-    You are a helpful assistant skilled in text analysis and summarization.
-    Please perform the following tasks on the provided text:
-
-
+    You are a helpful assistant skilled in text analysis.
+    Extract the text from the provided document and summarize its main points.
+    Please ensure the text is clear and well-structured.
 """
