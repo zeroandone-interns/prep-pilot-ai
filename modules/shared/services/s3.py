@@ -8,7 +8,7 @@ class S3Service:
     def __init__(self):
         self.client = boto3.client('s3', region_name='us-east-1')
         self.head_bucket_name = "instructor-documents-store/"
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
             
     def check_if_bucket_exists(self):
         return self.client.head_bucket(Bucket=self.head_bucket_name)

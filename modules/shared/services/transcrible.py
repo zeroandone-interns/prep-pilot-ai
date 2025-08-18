@@ -1,5 +1,5 @@
-from datetime import time
 import json
+import time
 import boto3
 import urllib
 from extensions import get_logger
@@ -10,16 +10,14 @@ class TranscribeService:
         self.transcribe_client = boto3.client('transcribe')
         self.logger = get_logger()
 
-    def start_transcription(self, job_name, media_uri, media_format, language_code):
+    def transcribe_file(self, job_name, media_uri, media_format, language_code):
         response = self.transcribe_client.start_transcription_job(
             TranscriptionJobName=job_name,
             Media={'MediaFileUri': media_uri},
             MediaFormat=media_format,
             LanguageCode=language_code
         )
-        return response
-
-    def get_transcription(self, job_name):
+        self.logger.info(f"Started transcription job: {job_name}")
         max_tries = 60
         while max_tries > 0:
             max_tries -= 1
