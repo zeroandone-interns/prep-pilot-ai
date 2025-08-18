@@ -53,8 +53,6 @@ class TranslationService:
 
     def translate_to_all_languages(self, text):
         self.get_logger.info(f"Translating text...")
-        # detected_lang = str(detect(text))[:2].lower()
-        # self.get_logger.info(f"Detected language: {detected_lang}")
 
         detected_lang = detect(text)
 

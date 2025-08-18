@@ -138,7 +138,9 @@ class DocumentChunks(db.Model):
     __tablename__ = "DocumentChunks"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tokens = db.Column(db.Integer)
-    text = db.Column(db.String)
+    text_en = db.Column(db.String)
+    text_fr = db.Column(db.String)
+    text_ar = db.Column(db.String)
     document_id = db.Column(db.Integer, db.ForeignKey("Documents.id"), nullable=False)
     embeddings_ar = db.Column(Vector(1024))
     embeddings_fr = db.Column(Vector(1024))

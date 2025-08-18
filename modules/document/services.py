@@ -76,23 +76,36 @@ class DocumentProcessingService:
                 self.logger.info(f"Chunking text in for loop")
                 # Translate the text into multiple languages
                 text_en, text_fr, text_ar = (
-                    self.translate_service.translate_to_all_languages(chunk)
+                    self.translate_service.translate_to_all_languages(chunk["text"])
                 )
                 self.logger.info(f"Translated text successfully")
                 embedding_en = self.bedrock_service.generate_embedding(text_en)
                 embedding_fr = self.bedrock_service.generate_embedding(text_fr)
                 embedding_ar = self.bedrock_service.generate_embedding(text_ar)
+
+                # DocumentChunks(
+                #     tokens=500,
+                #     document_id=3,
+                #     text_ar=text_ar,
+                #     text_en=text_en,
+                #     text_fr=text_fr,
+                #     embedding_ar=embedding_ar,
+                #     embedding_en=embedding_en,
+                #     embedding_fr=embedding_fr,
+                # )
+
                 self._save_chunks(
                     document.id,
-                    {
-                        "text_en": text_en,
-                        "text_fr": text_fr,
-                        "text_ar": text_ar,
-                        "embeddings_en": embedding_en,
-                        "embeddings_fr": embedding_fr,
-                        "embeddings_ar": embedding_ar,
-                    },
+                    text_en=text_en,
+                    text_fr=text_fr,
+                    text_ar=text_ar,
+                    embedding_en=embedding_en,
+                    embedding_fr=embedding_fr,
+                    embedding_ar=embedding_ar,
+                    tokens=chunk["tokens"],
                 )
+            self.logger.info("PROCESSING COMPLETE")
+
         except Exception as e:
             self.logger.error(f"Error processing file {file_key}: {e}")
 
@@ -129,16 +142,18 @@ class DocumentProcessingService:
         embedding_en,
         embedding_fr,
         embedding_ar,
+        tokens,
     ):
         chunk_entity = DocumentChunks(
+            tokens=tokens,
             document_id=document_id,
+            # text='',
+            text_ar=text_ar,
             text_en=text_en,
             text_fr=text_fr,
-            text_ar=text_ar,
-            tokens=500,
+            embeddings_ar=embedding_ar,
             embeddings_en=embedding_en,
             embeddings_fr=embedding_fr,
-            embeddings_ar=embedding_ar,
         )
         db.session.add(chunk_entity)
 
