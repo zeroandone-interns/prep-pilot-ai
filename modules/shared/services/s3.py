@@ -51,8 +51,18 @@ class S3Service:
                 )
             raise
 
-    def read_file_from_s3(self, object_key, decode=True):
+    def read_file_from_s3(self, object_key):
         obj = self.get_object_from_s3(object_key)
         body = obj["Body"].read()
+        content_type = obj["ContentType"]
+        self.logger.info(f"Read file from S3: {object_key} with type: {content_type}")
 
-        return body
+        # Decode only for text formats
+        if content_type.startswith("text/") or content_type in {
+            "application/json",
+            "application/xml",
+        }:
+            body = body.decode("utf-8", errors="ignore")
+
+        # For PDFs, DOCX, images, keep as bytes
+        return body, content_type

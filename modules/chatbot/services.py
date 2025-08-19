@@ -42,14 +42,6 @@ class ChatbotService:
         )
         return list(reversed(history))
 
-    def get_user_org_id_from_session(self, session_id: int):
-        return (
-            db.session.query(User.organization_id)
-            .join(ChatSession, ChatSession.user_id == User.id)
-            .filter(ChatSession.id == session_id)
-            .scalar()
-        )
-
     def detect_language(self, text: str) -> str:
         try:
             lang = detect(text)
@@ -64,7 +56,15 @@ class ChatbotService:
         else:
             return "en"
 
-    def retrieve_similar_chunks(self, embedding, session_id, lang="en", top_k=5):
+    def get_user_org_id_from_session(self, session_id: int):
+        return (
+            db.session.query(User.organization_id)
+            .join(ChatSession, ChatSession.user_id == User.id)
+            .filter(ChatSession.id == session_id)
+            .scalar()
+        )
+
+    def retrieve_similar_chunks(self, embedding, session_id, lang="en", top_k=10):
         user_org_id = self.get_user_org_id_from_session(session_id)
         print(f"User organization ID: {user_org_id}")
         if not user_org_id:
@@ -97,7 +97,7 @@ class ChatbotService:
         print("Generated prompt:", prompt)
 
         return self.bedrock.invoke_model_with_text(
-            prompt, temperature=0.5, max_tokens=1536
+            prompt, temperature=0.5, max_tokens=4608
         )
 
     def handle_message(self, session_id, message):

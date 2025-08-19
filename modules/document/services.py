@@ -16,6 +16,24 @@ class DocumentProcessingService:
         self.translate_service = TranslationService()
         self.logger = get_logger()
 
+        self.IMAGE_TYPES = {
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+        }
+
+        self.TEXT_TYPES = {
+            "text/plain",
+            "text/csv",
+            "text/html",
+            "application/json",
+            "application/xml",
+            "application/pdf",  # PDF
+            "application/msword",  # .doc
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+        }
+
     def process_documents_for_course(self, folder_name):
         folder_name = str(folder_name)
         bucket_exists = self.s3_service.check_if_bucket_exists()
@@ -37,36 +55,41 @@ class DocumentProcessingService:
 
         self.logger.info(f"Processing file: {file_keys}")
         for file_key in file_keys[1:]:
-            _, ext = os.path.splitext(file_key)
-            self.logger.info(f"Processing file: {file_key} with extension: {ext}")
-            ext = ext.lower()
-            doc_bytes = self.s3_service.read_file_from_s3(file_key)
+            self.logger.info(f"Processing file: {file_key}")
+            doc_bytes, content_type = self.s3_service.read_file_from_s3(file_key)
 
-            if ext in [".pdf", ".docx", ".doc", ".txt", ".md", ".html"]:
-                self.logger.info("processing with bedrock")
+            if content_type in self.TEXT_TYPES:
+                self.logger.info("text file detected")
+
                 text = self.bedrock_service.invoke_document(
                     doc_bytes,
                     file_key,
                     text_prompt,
-                    ext,
                 )
-                self.logger.info(f"Extracted text successfully")
-                self.process_file(text, ext, folder_name, file_key)
+                self.logger.info(f"Extracted text successfully: {text[:100]}...")
+                self.process_file(text, content_type, folder_name, file_key)
 
-            elif ext in [".jpg", ".jpeg", ".png"]:
-                text = self.bedrock_service.invoke_image(ext, image_prompt)
-                self.process_file(text, ext, folder_name, file_key)
+            elif content_type in self.IMAGE_TYPES:
+                self.logger.info("image file detected")
+                text = self.bedrock_service.invoke_image(
+                    doc_bytes, content_type, image_prompt
+                )
+                self.logger.info(
+                    f"Extracted text from image successfully: {text[:100]}..."
+                )
+                self.process_file(text, content_type, folder_name, file_key)
             else:
-                raise ValueError(f"Unsupported text file type: {ext}")
+                raise ValueError(f"Unsupported text file type: {content_type}")
 
-    def process_file(self, text, ext, folder_name, file_key):
+    def process_file(self, text, content_type, folder_name, file_key):
         try:
-            self.logger.info(f"Processing file: {file_key} with extension: {ext}")
+            self.logger.info(f"Processing file: {file_key} of type: {content_type}")
             s3_uri = f"s3://{self.s3_service.head_bucket_name}/{file_key}"
 
             self.logger.info("Saving in Documents table")
+
             # Save Documents in DB
-            document = self._save_document(folder_name, s3_uri, text, ext)
+            document = self._save_document(folder_name, s3_uri, text, content_type)
 
             # self.logger.info(f"Chunking text for document ID: {document.id}")
             chunks = self._chunk_text(text)
