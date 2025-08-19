@@ -52,6 +52,9 @@ class Courses(db.Model):
     duration = db.Column(db.String)
     nb_of_modules = db.Column(db.Integer)
     nb_of_sections = db.Column(db.Integer)
+    organizationId = db.Column(
+        db.Integer, db.ForeignKey("Organization.id"), nullable=False
+    )
 
     documents = db.relationship("Documents", back_populates="course")
     modules = db.relationship("Modules", back_populates="course")

@@ -12,13 +12,11 @@ transcribe_service = TranscribeService()
 def document_processing_controller():
     data = request.get_json()
 
-    service = DocumentProcessingService()
-
     valid, error = validate_request(data)
     if not valid:
         return jsonify({"error": error}), 400
 
-    results = service.process_documents_for_course(data["folder_name"])
+    results = document_service.process_documents_for_course(data["folder_name"])
 
     return jsonify({"results": results})
 

@@ -8,10 +8,9 @@ class BedrockService:
     def __init__(
         self,
         model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
-        region_name="us-east-1",
     ):
         self.model_id = model_id
-        self.client = boto3.client("bedrock-runtime", region_name=region_name)
+        self.client = boto3.client("bedrock-runtime", region_name="us-east-1")
 
     def invoke_model_with_text(
         self,

@@ -55,4 +55,4 @@ class S3Service:
         obj = self.get_object_from_s3(object_key)
         body = obj["Body"].read()
 
-        return body.decode("utf-8") if decode else body
+        return body
