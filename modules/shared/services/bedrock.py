@@ -1,17 +1,18 @@
 import json
 import base64
 import boto3
+from extensions import get_logger
 
 
-class Bedrock:
+class BedrockService:
 
     def __init__(
         self,
         model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
-        region_name="us-east-1",
     ):
         self.model_id = model_id
-        self.client = boto3.client("bedrock-runtime", region_name=region_name)
+        self.client = boto3.client("bedrock-runtime", region_name="us-east-1")
+        self.logger = get_logger()
 
     def invoke_model_with_text(
         self,
@@ -43,16 +44,16 @@ class Bedrock:
 
     def invoke_image(
         self,
-        image_path,
-        prompt,
+        file_bytes,
+        content_type,
+        image_prompt,
         model_id="anthropic.claude-3-haiku-20240307-v1:0",
         max_tokens=1000,
     ):
-        with open(image_path, "rb") as img:
-            encoded_image = base64.b64encode(img.read()).decode()
+        if not isinstance(file_bytes, (bytes, bytearray)):
+            raise TypeError("file_bytes must be bytes-like object")
 
-        ext = image_path.split(".")[-1].lower()
-        media_type = "image/jpeg" if ext in ["jpg", "jpeg"] else "image/png"
+        encoded_image = base64.b64encode(file_bytes).decode("utf-8")
 
         payload = {
             "messages": [
@@ -63,11 +64,14 @@ class Bedrock:
                             "type": "image",
                             "source": {
                                 "type": "base64",
-                                "media_type": media_type,
+                                "media_type": content_type,
                                 "data": encoded_image,
                             },
                         },
-                        {"type": "text", "text": prompt},
+                        {
+                            "type": "text",
+                            "text": image_prompt,
+                        },
                     ],
                 }
             ],
@@ -84,6 +88,36 @@ class Bedrock:
         result = json.loads(response["body"].read())
         return result.get("content", [{}])[0].get("text", "")
 
+    def invoke_document(self, doc_bytes, file_key, prompt):
+        file_name = file_key.split("/")[-1]  # Get the file name
+        name, ext = file_name.rsplit(".", 1) if "." in file_name else (file_name, "")
+        name = name.replace(" ", "_")
+        self.logger.info(f"Invoking document with name: {name}, ext: {ext}")
+        doc_message = {
+            "role": "user",
+            "content": [
+                {
+                    "document": {
+                        "name": name,
+                        "format": ext,
+                        "source": {"bytes": doc_bytes},
+                    }
+                },
+                {"text": prompt},
+            ],
+        }
+
+        response = self.client.converse(
+            modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+            messages=[doc_message],
+            inferenceConfig={
+                "maxTokens": 2000,
+                "temperature": 0,
+            },
+        )
+
+        return response["output"]["message"]["content"][0]["text"]
+
     def generate_embedding(self, text, model_id="amazon.titan-embed-text-v2:0"):
         """Generate text embeddings from Bedrock."""
         payload = {"inputText": text}
@@ -95,7 +129,3 @@ class Bedrock:
         )
         result = json.loads(response["body"].read())
         return result.get("embedding", [])
-
-    def invoke_pdf(self):
-        pass
-    

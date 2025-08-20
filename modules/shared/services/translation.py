@@ -1,15 +1,18 @@
 import boto3
 from langdetect import detect, DetectorFactory
+from extensions import get_logger
 
 # Ensure consistent language detection
 DetectorFactory.seed = 0
 
+
 class TranslationService:
-    allowed_langs = {'en', 'fr', 'ar'}
+    allowed_langs = {"en", "fr", "ar"}
     max_bytes = 10000
 
     def __init__(self):
-        self.translate_client = boto3.client('translate')
+        self.translate_client = boto3.client("translate", region_name="us-east-1")
+        self.get_logger = get_logger()
 
     def split_text(self, text):
         """
@@ -19,7 +22,11 @@ class TranslationService:
         current_chunk = []
 
         for line in text.splitlines(keepends=True):
-            if sum(len(s.encode("utf-8")) for s in current_chunk) + len(line.encode("utf-8")) > self.max_bytes:
+            if (
+                sum(len(s.encode("utf-8")) for s in current_chunk)
+                + len(line.encode("utf-8"))
+                > self.max_bytes
+            ):
                 chunks.append("".join(current_chunk))
                 current_chunk = [line]
             else:
@@ -38,14 +45,21 @@ class TranslationService:
             response = self.translate_client.translate_text(
                 Text=chunk,
                 SourceLanguageCode=source_lang,
-                TargetLanguageCode=target_lang
+                TargetLanguageCode=target_lang,
             )
-            translated_chunks.append(response.get('TranslatedText'))
+            translated_chunks.append(response.get("TranslatedText"))
 
         return "".join(translated_chunks)
 
     def translate_to_all_languages(self, text):
-        detected_lang = detect(text)[:2].lower()
+        self.get_logger.info(f"Translating text...")
+
+        detected_lang = detect(text)
+        self.get_logger.info(f"detected_lang: {detected_lang}")
+        if not isinstance(detected_lang, str):
+            detected_lang = str(detected_lang)
+
+        detected_lang = detected_lang[:2].lower()
 
         if detected_lang not in self.allowed_langs:
             raise ValueError(f"Detected language '{detected_lang}' is not supported")
@@ -55,5 +69,4 @@ class TranslationService:
         for lang in self.allowed_langs - {detected_lang}:
             translations[lang] = self.translate_text(text, detected_lang, lang)
 
-        return translations['en'], translations['fr'], translations['ar']
-
+        return translations["en"], translations["fr"], translations["ar"]

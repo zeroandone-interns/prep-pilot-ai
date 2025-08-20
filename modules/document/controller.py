@@ -8,6 +8,7 @@ logger = get_logger()
 document_service = DocumentProcessingService()
 transcribe_service = TranscribeService()
 
+
 def document_processing_controller():
     data = request.get_json()
 
@@ -15,7 +16,7 @@ def document_processing_controller():
     if not valid:
         return jsonify({"error": error}), 400
 
-    results = document_service.process_documents(data["course_id"], data["documents"])
+    results = document_service.process_documents_for_course(data["folder_name"])
 
     return jsonify({"results": results})
 
@@ -26,7 +27,7 @@ def transcribe():
             job_name=f"transcribe-test-1",
             media_uri=f"s3://instructor-documents-store/test/test_mp4.mp4",
             media_format="mp4",
-            language_code="en-US"
+            language_code="en-US",
         )
         if not response:
             return jsonify({"error": "Transcription failed"}), 500

@@ -52,6 +52,9 @@ class Courses(db.Model):
     duration = db.Column(db.String)
     nb_of_modules = db.Column(db.Integer)
     nb_of_sections = db.Column(db.Integer)
+    organizationId = db.Column(
+        db.Integer, db.ForeignKey("Organization.id"), nullable=False
+    )
 
     documents = db.relationship("Documents", back_populates="course")
     modules = db.relationship("Modules", back_populates="course")
@@ -138,7 +141,9 @@ class DocumentChunks(db.Model):
     __tablename__ = "DocumentChunks"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tokens = db.Column(db.Integer)
-    text = db.Column(db.String)
+    text_en = db.Column(db.String)
+    text_fr = db.Column(db.String)
+    text_ar = db.Column(db.String)
     document_id = db.Column(db.Integer, db.ForeignKey("Documents.id"), nullable=False)
     embeddings_ar = db.Column(Vector(1024))
     embeddings_fr = db.Column(Vector(1024))
