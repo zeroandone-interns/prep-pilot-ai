@@ -1,8 +1,9 @@
 from flask import request, jsonify
 from modules.course.services import CourseGenerationService
+from modules.flashcard.service import FlashcardService
 
 service = CourseGenerationService()
-
+flashcard_service = FlashcardService()
 
 def course_content_controller():
     data = request.get_json()
@@ -14,6 +15,9 @@ def course_content_controller():
 
     try:
         result = service.generate_course_structure(course_id)
+        service.generate_quiz(course_id)
+        flashcard_service.generate_flashcard(course_id)
+
         return jsonify({"status": "success", "course_id": course_id, "details": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
