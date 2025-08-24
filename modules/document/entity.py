@@ -59,6 +59,7 @@ class Courses(db.Model):
     documents = db.relationship("Documents", back_populates="course")
     modules = db.relationship("Modules", back_populates="course")
     enrollments = db.relationship("UserEnrollment", back_populates="course")
+    flashcards = db.relationship("FlashCards", back_populates="course")
 
 
 class Modules(db.Model):
@@ -68,7 +69,7 @@ class Modules(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
 
     course = db.relationship("Courses", back_populates="modules")
-    flashCards = db.relationship("FlashCards", back_populates="module")
+    # flashCards = db.relationship("FlashCards", back_populates="module")
     sections = db.relationship("Sections", back_populates="module")
 
 
@@ -89,13 +90,10 @@ class FlashCards(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     question_1 = db.Column(db.String)
     answer_1 = db.Column(db.String)
-    question_2 = db.Column(db.String)
-    answer_2 = db.Column(db.String)
-    question_3 = db.Column(db.String)
-    answer_3 = db.Column(db.String)
-    module_id = db.Column(db.Integer, db.ForeignKey("Modules.id"), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
+    difficulty = db.Column(db.String)
 
-    module = db.relationship("Modules", back_populates="flashCards")
+    course = db.relationship("Courses", back_populates="flashcards")
 
 
 class Paragraphs(db.Model):

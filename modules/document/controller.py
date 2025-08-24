@@ -1,12 +1,14 @@
-from flask import request, jsonify
+from flask import app, request, jsonify
 from modules.document.services import DocumentProcessingService
 from modules.document.schema import validate_request
 from extensions import get_logger
+from modules.flashcard.service import FlashcardService
 from modules.shared.services.transcrible import TranscribeService
 
 logger = get_logger()
 document_service = DocumentProcessingService()
 transcribe_service = TranscribeService()
+
 
 
 def document_processing_controller():
@@ -35,3 +37,5 @@ def transcribe():
     except Exception as e:
         logger.error(f"Error retrieving document: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
+
