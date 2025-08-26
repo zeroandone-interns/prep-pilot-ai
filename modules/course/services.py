@@ -78,10 +78,10 @@ class CourseGenerationService:
 
     def bedrock_generate(self, prompt, max_tokens=10000, temperature=0.5):
         self.logger.info(f"Calling Bedrock with prompt: {prompt}")
-        response = self.bedrock.invoke_model_streaming(
-            prompt, temperature=temperature, max_tokens=max_tokens
-        )
         try:
+            response = self.bedrock.invoke_model_streaming(
+                prompt, temperature=temperature, max_tokens=max_tokens
+            )
             return json.loads(response)
         except json.JSONDecodeError:
             self.logger.error(f"Failed to decode JSON response: {response}")

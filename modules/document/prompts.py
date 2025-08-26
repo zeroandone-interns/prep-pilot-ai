@@ -1,3 +1,5 @@
+
+#TODO: Retrieve terms. Remove initial output text.
 TEXT_PROMPT = """
 You are a text extraction specialist. Extract all meaningful content from the document.
 

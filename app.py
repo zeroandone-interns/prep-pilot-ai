@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from extensions import db
 import os
 
+from modules.flashcard.service import FlashcardService
+
 # from modules.flashcard.service import FlashcardService
 
 load_dotenv()
@@ -29,17 +31,17 @@ course_routes.register_course_routes(app)
 
 
 # ############################
-# flashcard_service = FlashcardService()
-# from extensions import get_logger
-# logger = get_logger()
-# @app.route('/flashcards', methods=['GET'])
-# def get_flashcards():
-#     try:
-#         flashcards = flashcard_service.generate_flashcard(1)
-#         return jsonify({"flashcards": flashcards}), 200
-#     except Exception as e:
-#         logger.error(f"Error retrieving flashcards: {str(e)}")
-#         return jsonify({"error": "Internal Server Error"}), 500
+flashcard_service = FlashcardService()
+from extensions import get_logger
+logger = get_logger('[FlashcardAPI]')
+@app.route('/flashcards', methods=['GET'])
+def get_flashcards():
+    try:
+        flashcards = flashcard_service.generate_flashcard(1)
+        return jsonify({"flashcards": flashcards}), 200
+    except Exception as e:
+        logger.error(f"Error retrieving flashcards: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
 # ########################  
 
 if __name__ == "__main__":

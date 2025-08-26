@@ -157,10 +157,15 @@ class BedrockService:
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
         }
-        response = self.client.invoke_model_with_response_stream(
-            modelId=self.model_id,
-            body=json.dumps(body),
-        )
+        
+        try:    
+            response = self.client.invoke_model_with_response_stream(
+                modelId=self.model_id,
+                body=json.dumps(body),
+            )
+        except Exception as e:
+            self.logger.error(f"Error invoking model with stream: {e}")
+            return []
 
         for event in response["body"]:
             if "chunk" in event and "bytes" in event["chunk"]:
@@ -177,10 +182,14 @@ class BedrockService:
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
         }
-        response = self.client.invoke_model_with_response_stream(
-            modelId=self.model_id,
-            body=json.dumps(body),
-        )
+        try:    
+            response = self.client.invoke_model_with_response_stream(
+                modelId=self.model_id,
+                body=json.dumps(body),
+            )
+        except Exception as e:
+            self.logger.error(f"Error invoking model streaming: {e}")
+            return []
 
         collected_text = []
         for event in response["body"]:
