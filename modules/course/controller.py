@@ -5,6 +5,7 @@ from modules.flashcard.service import FlashcardService
 service = CourseGenerationService()
 flashcard_service = FlashcardService()
 
+
 def course_content_controller():
     data = request.get_json()
 

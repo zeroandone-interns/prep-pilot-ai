@@ -147,3 +147,46 @@ class BedrockService:
         
         result = json.loads(response["body"].read())
         return result.get("embedding", [])
+
+    def invoke_model_with_stream(self, prompt, temperature=0.5, max_tokens=1024):
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
+                {"role": "user", "content": [{"type": "text", "text": prompt}]}
+            ],
+        }
+        response = self.client.invoke_model_with_response_stream(
+            modelId=self.model_id,
+            body=json.dumps(body),
+        )
+
+        for event in response["body"]:
+            if "chunk" in event and "bytes" in event["chunk"]:
+                chunk_data = json.loads(event["chunk"]["bytes"])
+                if chunk_data.get("type") == "content_block_delta":
+                    yield chunk_data["delta"].get("text", "")
+
+    def invoke_model_streaming(self, prompt, temperature=0.5, max_tokens=1024):
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
+                {"role": "user", "content": [{"type": "text", "text": prompt}]}
+            ],
+        }
+        response = self.client.invoke_model_with_response_stream(
+            modelId=self.model_id,
+            body=json.dumps(body),
+        )
+
+        collected_text = []
+        for event in response["body"]:
+            if "chunk" in event and "bytes" in event["chunk"]:
+                chunk_data = json.loads(event["chunk"]["bytes"])
+                if chunk_data.get("type") == "content_block_delta":
+                    collected_text.append(chunk_data["delta"].get("text", ""))
+
+        return "".join(collected_text)

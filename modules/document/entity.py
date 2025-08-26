@@ -77,7 +77,7 @@ class Sections(db.Model):
     __tablename__ = "Sections"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String, nullable=False)
-    is_complete = db.Column(db.Boolean, default=False)
+    # is_complete = db.Column(db.Boolean, default=False)
     module_id = db.Column(db.Integer, db.ForeignKey("Modules.id"), nullable=False)
 
     module = db.relationship("Modules", back_populates="sections")
