@@ -1,8 +1,9 @@
-from flask import Flask, json, jsonify
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
-from dotenv import load_dotenv
 from extensions import db
+from modules.shared.services.secrets import SecretsDBService
+from sqlalchemy import create_engine, text
 import os
 
 from modules.flashcard.service import FlashcardService
@@ -12,15 +13,17 @@ from modules.flashcard.service import FlashcardService
 load_dotenv()
 
 app = Flask(__name__)
-
 CORS(app)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DB_URL")
+secrets_db = SecretsDBService()
+
+app.config["SQLALCHEMY_DATABASE_URI"] = secrets_db.get_db_url()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 migrate = Migrate(app, db)
 
+# Import and register routes
 from modules.document import routes as document_routes
 from modules.chatbot import routes as chatbot_routes
 from modules.course import routes as course_routes
