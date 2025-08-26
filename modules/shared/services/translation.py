@@ -52,17 +52,15 @@ class TranslationService:
         return "".join(translated_chunks)
 
     def translate_to_all_languages(self, text):
-        self.get_logger.info(f"Translating text...")
-
         detected_lang = detect(text)
-        self.get_logger.info(f"detected_lang: {detected_lang}")
+ 
         if not isinstance(detected_lang, str):
             detected_lang = str(detected_lang)
 
         detected_lang = detected_lang[:2].lower()
 
         if detected_lang not in self.allowed_langs:
-            raise ValueError(f"Detected language '{detected_lang}' is not supported")
+            raise ValueError(f"\nDetected language '{detected_lang}' is not supported")
 
         translations = {detected_lang: text}
 

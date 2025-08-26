@@ -8,7 +8,7 @@ from extensions import get_logger
 class TranscribeService:
     def __init__(self):
         self.transcribe_client = boto3.client("transcribe", region_name="us-east-1")
-        self.logger = get_logger()
+        self.logger = get_logger('[TranscribeService]')
 
     def transcribe_file(self, job_name, media_uri, media_format, language_code):
         response = self.transcribe_client.start_transcription_job(
@@ -17,7 +17,7 @@ class TranscribeService:
             MediaFormat=media_format,
             LanguageCode=language_code,
         )
-        self.logger.info(f"Started transcription job: {job_name}")
+        self.logger.info(f"\nStarted transcription job: {job_name}")
         max_tries = 60
         while max_tries > 0:
             max_tries -= 1
