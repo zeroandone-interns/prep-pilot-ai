@@ -1,4 +1,4 @@
-from extensions import db
+from extensions import db, get_logger
 from langdetect import detect
 from modules.shared.services.bedrock import BedrockService
 from modules.chatbot.prompts import CHATBOT_RESPONSE_PROMPT
@@ -15,6 +15,7 @@ from modules.document.entity import (
 class ChatbotService:
     def __init__(self):
         self.bedrock = BedrockService()
+        self.logger = get_logger()
 
     def validate_request(self, data):
         if not data:
@@ -102,18 +103,45 @@ class ChatbotService:
 
     def handle_message(self, session_id, message):
         self.save_message(session_id, message, "User")
+        lang = self.detect_language(message)
+        embedding = self.bedrock.generate_embedding(message)
+        history = self.get_chat_history(session_id)
+        retrieved_chunks = self.retrieve_similar_chunks(
+            embedding, session_id, lang=lang
+        )
+        response_text = self.generate_response(message, history, retrieved_chunks)
+        self.save_message(session_id, response_text, "Assistant")
+        return response_text
+
+    def handle_message_stream(self, session_id, message):
+        self.save_message(session_id, message, "User")
 
         lang = self.detect_language(message)
         embedding = self.bedrock.generate_embedding(message)
 
         history = self.get_chat_history(session_id)
-
         retrieved_chunks = self.retrieve_similar_chunks(
             embedding, session_id, lang=lang
         )
 
-        response_text = self.generate_response(message, history, retrieved_chunks)
+        context_text = "\n".join(chunk.text_en for chunk in retrieved_chunks)
+        history_text = "\n".join(f"{msg.sender}: {msg.message}" for msg in history)
+        prompt = CHATBOT_RESPONSE_PROMPT.format(
+            context=context_text, history=history_text, message=message
+        )
+        self.logger.info(f"Generated prompt: {prompt}")
 
-        self.save_message(session_id, response_text, "Assistant")
+        response_chunks = list(self.bedrock.invoke_model_with_stream("test prompt"))
+        full_response = "".join(response_chunks)
 
-        return response_text
+        self.logger.info(f"[Full Assistant Response] {full_response}")
+
+        if full_response.strip():
+            self.save_message(session_id, full_response, "Assistant")
+
+        def generate():
+            for chunk in response_chunks:
+                yield f"data: {chunk}\n\n"
+            yield "data: [END]\n\n"
+
+        return generate()

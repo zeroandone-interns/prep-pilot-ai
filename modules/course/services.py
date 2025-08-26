@@ -47,7 +47,7 @@ class CourseGenerationService:
         self.logger.info(f"Retrieved course info: {course_info}")
         return course_info
 
-    def _get_course_documents(self, course_id, embedding, top_k=5):
+    def _get_course_documents(self, course_id, embedding, top_k=10):
         chunks = (
             db.session.query(DocumentChunks)
             .join(Documents, DocumentChunks.document_id == Documents.id)
@@ -75,8 +75,10 @@ class CourseGenerationService:
         return embedding
 
     # Bedrock Call Wrapper
+
     def bedrock_generate(self, prompt, max_tokens=10000, temperature=0.5):
-        response = self.bedrock.invoke_model_with_text(
+        self.logger.info(f"Calling Bedrock with prompt: {prompt}")
+        response = self.bedrock.invoke_model_streaming(
             prompt, temperature=temperature, max_tokens=max_tokens
         )
         try:
@@ -86,6 +88,7 @@ class CourseGenerationService:
             return {}
 
     # Generators
+
     def _call_bedrock_for_modules(self, course_info, course_text):
         prompt = GENERATE_MODULES_PROMPT.format(
             title=course_info["title"],
@@ -94,7 +97,13 @@ class CourseGenerationService:
             nb_of_sections=course_info["nb_of_sections"],
             content=course_text,
         )
-        return self.bedrock_generate(prompt)
+        self.logger.info(f"Generated prompt for modules: {prompt}")
+        modules_data = self.bedrock_generate(prompt)
+
+        if not isinstance(modules_data, list) or len(modules_data) == 0:
+            self.logger.error("Bedrock did not return valid modules")
+            return []
+        return modules_data
 
     def _call_bedrock_for_questions(self, content):
         prompt = GENERATE_QUESTIONS_PROMPT.format(module_summary=content)
@@ -108,7 +117,7 @@ class CourseGenerationService:
     def generate_course_structure(self, course_id):
         course_info = self._get_course_details(course_id)
         embeddings = self._embed_course_info(course_info)
-        chunks = self._get_course_documents(course_id, embeddings, top_k=5)
+        chunks = self._get_course_documents(course_id, embeddings, top_k=10)
         course_text = self._combine_course_content(chunks)
 
         # Step 1: Generate modules + sections + paragraphs
@@ -128,7 +137,7 @@ class CourseGenerationService:
                 section_entity = Sections(
                     title=section["title"],
                     module_id=module_entity.id,
-                    is_complete=False,
+                    # is_complete=False,
                 )
                 db.session.add(section_entity)
                 db.session.flush()
