@@ -123,12 +123,10 @@ class Questions(db.Model):
 class Documents(db.Model):
     __tablename__ = "Documents"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    s3_key = db.Column(db.String)
-    type = db.Column(db.String)
+    s3_uri = db.Column(db.String)
     language = db.Column(db.String)
-    content_en = db.Column(db.String)
-    content_ar = db.Column(db.String)
-    content_fr = db.Column(db.String)
+    text = db.Column(db.String)
+    type = db.Column(db.String)
     course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
 
     course = db.relationship("Courses", back_populates="documents")

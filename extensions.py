@@ -4,8 +4,8 @@ import logging
 db = SQLAlchemy()
 
 
-def get_logger(level=logging.INFO):
-    logger = logging.getLogger(__name__)
+def get_logger(name=__name__, level=logging.INFO):
+    logger = logging.getLogger(name)
     if not logger.hasHandlers():
         logging.basicConfig(level=level)
     logger.setLevel(level)

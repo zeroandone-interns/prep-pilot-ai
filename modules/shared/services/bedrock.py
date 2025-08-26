@@ -12,7 +12,7 @@ class BedrockService:
     ):
         self.model_id = model_id
         self.client = boto3.client("bedrock-runtime", region_name="us-east-1")
-        self.logger = get_logger()
+        self.logger = get_logger('[BedrockService]')
 
     def invoke_model_with_text(
         self,
@@ -32,14 +32,16 @@ class BedrockService:
                 }
             ],
         }
-        print("Region:", self.client.meta.region_name)
-        print("Model ID:", model_id)
-        print("Payload size (bytes):", len(json.dumps(payload)))
-        response = self.client.invoke_model(
-            modelId=model_id,
-            contentType="application/json",
-            body=json.dumps(payload),
-        )
+
+        try:
+            response = self.client.invoke_model(
+                modelId=model_id,
+                contentType="application/json",
+                body=json.dumps(payload),
+            )
+        except Exception as e:
+            self.logger.error(f"Error invoking model: {e}")
+            return {"error": str(e)}
 
         result = json.loads(response["body"].read())
         return result.get("content", [{}])[0].get("text", "")
@@ -81,27 +83,30 @@ class BedrockService:
             "anthropic_version": "bedrock-2023-05-31",
         }
 
-        response = self.client.invoke_model(
-            modelId=model_id,
-            contentType="application/json",
-            body=json.dumps(payload),
-        )
+        try:
+            response = self.client.invoke_model(
+                modelId=model_id,
+                contentType="application/json",
+                body=json.dumps(payload),
+            )
+        except Exception as e:
+            self.logger.error(f"Error invoking image model: {e}")
+            return {"error": str(e)}
 
         result = json.loads(response["body"].read())
         return result.get("content", [{}])[0].get("text", "")
 
-    def invoke_document(self, doc_bytes, file_key, prompt):
-        file_name = file_key.split("/")[-1]  # Get the file name
-        name, ext = file_name.rsplit(".", 1) if "." in file_name else (file_name, "")
-        name = name.replace(" ", "_")
-        self.logger.info(f"Invoking document with name: {name}, ext: {ext}")
+    def invoke_document(self, doc_bytes, file_name, file_extension, prompt):
+        if not file_name or not isinstance(file_name, str) or len(file_name) < 1:
+            raise ValueError("file_name must be a non-empty string")
+        
         doc_message = {
             "role": "user",
             "content": [
                 {
                     "document": {
-                        "name": name,
-                        "format": ext,
+                        "name": file_name,
+                        "format": file_extension[1:],
                         "source": {"bytes": doc_bytes},
                     }
                 },
@@ -109,26 +114,37 @@ class BedrockService:
             ],
         }
 
-        response = self.client.converse(
-            modelId="anthropic.claude-3-sonnet-20240229-v1:0",
-            messages=[doc_message],
-            inferenceConfig={
-                "maxTokens": 2000,
-                "temperature": 0,
-            },
-        )
-
+        try:
+            response = self.client.converse(
+                modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+                messages=[doc_message],
+                inferenceConfig={
+                    "maxTokens": 2000,
+                    "temperature": 0,
+                },
+            )
+        except Exception as e:
+            self.logger.error(f"Error invoking document model: {e}")
+            return {"error": str(e)}
+        
         return response["output"]["message"]["content"][0]["text"]
 
     def generate_embedding(self, text, model_id="amazon.titan-embed-text-v2:0"):
-        """Generate text embeddings from Bedrock."""
+        if not text or not isinstance(text, str) or len(text) < 1:
+            raise ValueError("text must be a non-empty string")
+
         payload = {"inputText": text}
-        response = self.client.invoke_model(
-            modelId=model_id,
-            contentType="application/json",
-            accept="application/json",
-            body=json.dumps(payload),
-        )
+        try:    
+            response = self.client.invoke_model(
+                modelId=model_id,
+                contentType="application/json",
+                accept="application/json",
+                body=json.dumps(payload),
+            )
+        except Exception as e:
+            self.logger.error(f"Error generating embedding: {e}")
+            return {"error": str(e)}
+        
         result = json.loads(response["body"].read())
         return result.get("embedding", [])
 

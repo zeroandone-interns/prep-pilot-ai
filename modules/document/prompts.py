@@ -1,4 +1,4 @@
-text_prompt = """
+TEXT_PROMPT = """
 You are a text extraction specialist. Extract all meaningful content from the document.
 
 ## Instructions:
@@ -13,7 +13,7 @@ EXTRACTED_TEXT:
 [All text, original structure with captions clearly indicated]
 """
 
-image_prompt = """
+IMAGE_PROMPT = """
 You are an OCR specialist. Extract all readable text from the image with high accuracy.
 
 ## Instructions:
