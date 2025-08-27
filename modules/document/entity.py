@@ -45,7 +45,8 @@ class Courses(db.Model):
     duration = db.Column(db.String)
     nb_of_modules = db.Column(db.Integer)
     nb_of_sections = db.Column(db.Integer)
-    turns = db.Column(ARRAY(db.String))
+    terms = db.Column(ARRAY(db.String))
+
     organizationId = db.Column(
         db.Integer, db.ForeignKey("Organization.id"), nullable=False
     )
@@ -80,6 +81,8 @@ class Sections(db.Model):
 
     module = db.relationship("Modules", back_populates="sections")
     paragraphs = db.relationship("Paragraphs", back_populates="section")
+    questions = db.relationship("Questions", back_populates="section")
+
 
 
 class Paragraphs(db.Model):
@@ -118,8 +121,11 @@ class Questions(db.Model):
     explanation_fr = db.Column(db.String)
     explanation_ar = db.Column(db.String)
     course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
+    section_id = db.Column(db.Integer, db.ForeignKey("Sections.id"), nullable=True)
 
     course = db.relationship("Courses", back_populates="questions")
+    section = db.relationship("Sections", back_populates="questions")
+
 
 
 class FlashCards(db.Model):
@@ -141,7 +147,6 @@ class Documents(db.Model):
     __tablename__ = "Documents"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     s3_uri = db.Column(db.String)
-    type = db.Column(db.String)
     text = db.Column(db.String)
     course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
 

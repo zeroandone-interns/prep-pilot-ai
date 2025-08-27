@@ -1,9 +1,9 @@
-from flask import app, request, jsonify
+from flask import request, jsonify
 from modules.document.services import DocumentProcessingService
+from modules.shared.services.transcrible import TranscribeService
 from modules.document.schema import validate_request
 from extensions import get_logger
-from modules.flashcard.service import FlashcardService
-from modules.shared.services.transcrible import TranscribeService
+
 
 logger = get_logger("[DocumentController]")
 document_service = DocumentProcessingService()
