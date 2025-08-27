@@ -23,4 +23,4 @@ def document_processing_controller():
         return jsonify({"success": bool(results)}), 200
     except Exception as e:
         logger.error(f"Error processing documents: {str(e)}")
-        return jsonify({"error": "Internal Server Error"}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
