@@ -131,7 +131,7 @@ class ChatbotService:
         )
         self.logger.info(f"Generated prompt: {prompt}")
 
-        response_chunks = list(self.bedrock.invoke_model_with_stream("test prompt"))
+        response_chunks = list(self.bedrock.invoke_model_with_stream(prompt))
         full_response = "".join(response_chunks)
 
         self.logger.info(f"[Full Assistant Response] {full_response}")

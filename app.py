@@ -4,14 +4,11 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from extensions import db
 from modules.shared.services.secrets import SecretsDBService
-from sqlalchemy import create_engine, text
-import os
 
 from modules.flashcard.service import FlashcardService
 
 # from modules.flashcard.service import FlashcardService
 
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -37,8 +34,11 @@ course_routes.register_course_routes(app)
 # ############################
 flashcard_service = FlashcardService()
 from extensions import get_logger
-logger = get_logger('[FlashcardAPI]')
-@app.route('/flashcards', methods=['GET'])
+
+logger = get_logger("[FlashcardAPI]")
+
+
+@app.route("/flashcards", methods=["GET"])
 def get_flashcards():
     try:
         flashcards = flashcard_service.generate_flashcard(5, "en")
@@ -46,7 +46,9 @@ def get_flashcards():
     except Exception as e:
         logger.error(f"Error retrieving flashcards: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
-# ########################  
+
+
+# ########################
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

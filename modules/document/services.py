@@ -22,6 +22,7 @@ class DocumentProcessingService:
         self.chunk_size = 2048
         self.context_window = 160000
 
+
         self.IMAGE_TYPES = {
             "image/jpeg",
             "image/png",
@@ -55,6 +56,7 @@ class DocumentProcessingService:
             self.logger.info(f"[process_documents_for_course] Processing file: {s3_key}")
 
             folder_name, file_name_with_extension = os.path.split(s3_key)
+
             self.logger.debug(
                 f"[process_documents_for_course] Folder name: {folder_name}, File name with extension: {file_name_with_extension}"
             )
@@ -62,6 +64,7 @@ class DocumentProcessingService:
             file_name, file_extension = os.path.splitext(file_name_with_extension)
             self.logger.debug(
                 f"[process_documents_for_course] File name: {file_name}, File extension: {file_extension}"
+
             )
 
             doc_bytes, content_type = self.s3_service.read_file_from_s3(s3_key)
@@ -78,6 +81,7 @@ class DocumentProcessingService:
                     TEXT_PROMPT,
                 )
 
+
                 self.logger.info(
                     f"\n[process_documents_for_course] ====={text}===="
                 )
@@ -86,6 +90,7 @@ class DocumentProcessingService:
                 self.logger.info("[process_documents_for_course] Image File Detected")
                 self.logger.info(
                     "\n[process_documents_for_course] Invoking Bedrock for image extraction: 'invoke_image'"
+
                 )
                 text = self.bedrock_service.invoke_image(
                     doc_bytes, content_type, IMAGE_PROMPT
@@ -112,6 +117,7 @@ class DocumentProcessingService:
         try:
             self.logger.info(f"[process_file] Processing file: {s3_key}")
             s3_uri = f"s3://{self.s3_service.head_bucket_name}/{s3_key}"
+
 
             if isinstance(text, str):
                 try:

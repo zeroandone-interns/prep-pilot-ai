@@ -46,6 +46,7 @@ class Courses(db.Model):
     nb_of_modules = db.Column(db.Integer)
     nb_of_sections = db.Column(db.Integer)
     terms = db.Column(ARRAY(db.String))
+
     organizationId = db.Column(
         db.Integer, db.ForeignKey("Organization.id"), nullable=False
     )
@@ -81,6 +82,7 @@ class Sections(db.Model):
     module = db.relationship("Modules", back_populates="sections")
     paragraphs = db.relationship("Paragraphs", back_populates="section")
     questions = db.relationship("Questions", back_populates="section")
+
 
 
 class Paragraphs(db.Model):
@@ -123,6 +125,7 @@ class Questions(db.Model):
 
     course = db.relationship("Courses", back_populates="questions")
     section = db.relationship("Sections", back_populates="questions")
+
 
 
 class FlashCards(db.Model):
