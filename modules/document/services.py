@@ -1,6 +1,5 @@
 import os
-
-from flask import json
+import json
 from modules.shared.services.s3 import S3Service
 from modules.shared.services.bedrock import BedrockService
 from modules.shared.services.transcrible import TranscribeService
@@ -82,10 +81,10 @@ class DocumentProcessingService:
                 )
 
 
-                self.logger.info(
-                    f"\n[process_documents_for_course] ====={text}===="
-                )
-                return self.process_file(text, folder_name, s3_key)
+                # self.logger.info(
+                #     f"\n[process_documents_for_course] ====={text}===="
+                # )
+                self.process_file(text, folder_name, s3_key)
             elif content_type in self.IMAGE_TYPES:
                 self.logger.info("[process_documents_for_course] Image File Detected")
                 self.logger.info(
@@ -95,10 +94,10 @@ class DocumentProcessingService:
                 text = self.bedrock_service.invoke_image(
                     doc_bytes, content_type, IMAGE_PROMPT
                 )
-                self.logger.info(
-                    f"\n[process_documents_for_course] Extracted text from image successfully: {text}"
-                )
-                return self.process_file(text, folder_name, s3_key)
+                # self.logger.info(
+                #     f"\n[process_documents_for_course] Extracted text from image successfully: {text}"
+                # )
+                self.process_file(text, folder_name, s3_key)
             elif content_type in self.VIDEO_AUDIO_TYPES:
                 self.logger.info("[process_documents_for_course] Video or Audio Detected")
                 self.logger.info("[process_documents_for_course] Invoking Transcribe Service")
@@ -109,9 +108,11 @@ class DocumentProcessingService:
                     language_code="en-US",
                 )
                 self.logger.info(f"\n[process_documents_for_course] Transcribed text successfully: {text[:100]}...")
-                return self.process_file(text, folder_name, s3_key)
+                self.process_file(text, folder_name, s3_key)
             else:
                 raise ValueError(f"Unsupported content type: {content_type}")
+            
+        return True
 
     def process_file(self, text, course_id, s3_key):
         try:

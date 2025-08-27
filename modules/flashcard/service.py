@@ -31,7 +31,7 @@ class FlashcardService:
         self.bedrock_service = BedrockService()
         self.document_service = DocumentProcessingService()
 
-    def generate_flashcard(self, course_id, lang):
+    def generate_flashcard(self, course_id, lang="en"):
         self.logger.info("[generate_flashcard] Generating Flashcard...")
 
         # Get course info to determine the topic

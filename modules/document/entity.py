@@ -81,7 +81,7 @@ class Sections(db.Model):
 
     module = db.relationship("Modules", back_populates="sections")
     paragraphs = db.relationship("Paragraphs", back_populates="section")
-    questions = db.relationship("Questions", back_populates="section")
+    # questions = db.relationship("Questions", back_populates="section")
 
 
 
@@ -121,10 +121,10 @@ class Questions(db.Model):
     explanation_fr = db.Column(db.String)
     explanation_ar = db.Column(db.String)
     course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
-    section_id = db.Column(db.Integer, db.ForeignKey("Sections.id"), nullable=True)
+    # section_id = db.Column(db.Integer, db.ForeignKey("Sections.id"), nullable=True)
 
     course = db.relationship("Courses", back_populates="questions")
-    section = db.relationship("Sections", back_populates="questions")
+    # section = db.relationship("Sections", back_populates="questions")
 
 
 

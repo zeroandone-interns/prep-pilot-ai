@@ -18,7 +18,7 @@ def course_content_controller():
 
     try:
         result = course_service.generate_course_structure(course_id)
-        # flashcard_service.generate_flashcard(course_id)
+        flashcard_service.generate_flashcard(course_id)
         question_service.generate_question(course_id)
 
         return jsonify({"status": "success", "course_id": course_id, "details": result})
