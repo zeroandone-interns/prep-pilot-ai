@@ -77,7 +77,6 @@ class DocumentProcessingService:
                     f"\nExtracted text successfully: \n====={text[:100]}...===="
                 )
                 self.process_file(text, folder_name, s3_key)
-
             elif content_type in self.IMAGE_TYPES:
                 self.logger.info("\nImage File Detected")
                 self.logger.info(
@@ -144,7 +143,6 @@ class DocumentProcessingService:
         doc = Documents(
             course_id=course_id,
             s3_uri=s3_uri,
-            language="en",
             text=text,
             type=type,
         )
@@ -152,6 +150,7 @@ class DocumentProcessingService:
         db.session.commit()
         return doc
 
+    #TODO: Change to Semantic Chunker
     def _chunk_text(self, text, chunk_size=500, chunk_overlap=50):
         chunker = SentenceChunker(
             tokenizer_or_token_counter="gpt2",
