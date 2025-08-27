@@ -8,8 +8,3 @@ def register_course_routes(app):
         view_func=controller.course_content_controller,
         methods=["POST"],
     )
-    app.add_url_rule(
-        "/generate_quiz",
-        view_func=controller.quiz_controller,
-        methods=["POST"],
-    )

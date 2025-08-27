@@ -12,7 +12,7 @@ class BedrockService:
     ):
         self.model_id = model_id
         self.client = boto3.client("bedrock-runtime", region_name="us-east-1")
-        self.logger = get_logger('[BedrockService]')
+        self.logger = get_logger("[BedrockService]")
 
     def invoke_model_with_text(
         self,
@@ -99,7 +99,7 @@ class BedrockService:
     def invoke_document(self, doc_bytes, file_name, file_extension, prompt):
         if not file_name or not isinstance(file_name, str) or len(file_name) < 1:
             raise ValueError("file_name must be a non-empty string")
-        
+
         doc_message = {
             "role": "user",
             "content": [
@@ -126,7 +126,7 @@ class BedrockService:
         except Exception as e:
             self.logger.error(f"Error invoking document model: {e}")
             return {"error": str(e)}
-        
+
         return response["output"]["message"]["content"][0]["text"]
 
     def generate_embedding(self, text, model_id="amazon.titan-embed-text-v2:0"):
@@ -134,7 +134,7 @@ class BedrockService:
             raise ValueError("text must be a non-empty string")
 
         payload = {"inputText": text}
-        try:    
+        try:
             response = self.client.invoke_model(
                 modelId=model_id,
                 contentType="application/json",
@@ -144,7 +144,7 @@ class BedrockService:
         except Exception as e:
             self.logger.error(f"Error generating embedding: {e}")
             return {"error": str(e)}
-        
+
         result = json.loads(response["body"].read())
         return result.get("embedding", [])
 
@@ -157,8 +157,8 @@ class BedrockService:
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
         }
-        
-        try:    
+
+        try:
             response = self.client.invoke_model_with_response_stream(
                 modelId=self.model_id,
                 body=json.dumps(body),
@@ -173,7 +173,9 @@ class BedrockService:
                 if chunk_data.get("type") == "content_block_delta":
                     yield chunk_data["delta"].get("text", "")
 
-    def invoke_model_streaming(self, prompt, temperature=0.5, max_tokens=1024):
+    def invoke_model_streaming(
+        self, prompt, model_id, temperature=0.5, max_tokens=10000
+    ):
         body = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": max_tokens,
@@ -182,9 +184,9 @@ class BedrockService:
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
         }
-        try:    
+        try:
             response = self.client.invoke_model_with_response_stream(
-                modelId=self.model_id,
+                modelId=model_id,
                 body=json.dumps(body),
             )
         except Exception as e:
