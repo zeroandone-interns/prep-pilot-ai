@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -40,7 +41,7 @@ logger = get_logger('[FlashcardAPI]')
 @app.route('/flashcards', methods=['GET'])
 def get_flashcards():
     try:
-        flashcards = flashcard_service.generate_flashcard(1)
+        flashcards = flashcard_service.generate_flashcard(5, "en")
         return jsonify({"flashcards": flashcards}), 200
     except Exception as e:
         logger.error(f"Error retrieving flashcards: {str(e)}")
