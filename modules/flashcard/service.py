@@ -7,6 +7,8 @@ from modules.shared.services.bedrock import BedrockService
 from extensions import db
 import numpy as np
 
+from modules.shared.services.translation import TranslationService
+
 def cosine_similarity(vec1, vec2):          
     if vec1 is None or vec2 is None:
         return 0.0
@@ -30,6 +32,7 @@ class FlashcardService:
         self.logger = get_logger('[FlashcardService]')
         self.bedrock_service = BedrockService()
         self.document_service = DocumentProcessingService()
+        self.translation_service = TranslationService()
 
     def generate_flashcard(self, course_id, lang="en"):
         self.logger.info("[generate_flashcard] Generating Flashcard...")
@@ -311,7 +314,6 @@ class FlashcardService:
     def save_flashcards_in_db(self, module_flashcards, course_id):
         total_saved = 0
         
-        # Process flashcards grouped by module
         for module_id_str, flashcards in module_flashcards.items():
             if not isinstance(flashcards, list):
                 self.logger.warning(f"Expected list of flashcards for module {module_id_str}, got {type(flashcards)}")
@@ -319,29 +321,19 @@ class FlashcardService:
                 
             self.logger.info(f"Processing {len(flashcards)} flashcards for module {module_id_str}")
             
-            # # Convert module_id to integer if it's numeric, otherwise keep as unclassified
-            # try:
-            #     if module_id_str != "unclassified":
-            #         module_id = int(module_id_str)
-            #     else:
-            #         module_id = None
-            # except (ValueError, TypeError):
-            #     self.logger.warning(f"Invalid module_id: {module_id_str}, treating as unclassified")
-            #     module_id = None
-            
-            # # Verify the module_id exists in database
-            # if module_id is not None:
-            #     module_exists = Modules.query.filter_by(id=module_id, course_id=course_id).first() is not None
-            #     if not module_exists:
-            #         self.logger.warning(f"Module ID {module_id} not found for course {course_id}, treating as unclassified")
-            #         module_id = None
-            
-            # Save each flashcard in the module group
             for card in flashcards:
+                translated_question = self.translation_service._translate_and_assign(card.get("question"))
+                translated_answer = self.translation_service._translate_and_assign(card.get("answer"))
+                
+                
                 new_flashcard = FlashCards(
                     difficulty=card.get("difficulty"),
-                    question_en=card.get("question"),
-                    answer_en=card.get("answer"),
+                    question_en=translated_question.get("en"),
+                    question_ar=translated_question.get("ar"),
+                    question_fr=translated_question.get("fr"),
+                    answer_en=translated_answer.get("en"),
+                    answer_ar=translated_answer.get("ar"),
+                    answer_fr=translated_answer.get("fr"),
                     module_id=module_id_str if module_id_str != "unclassified" else None
                 )
                 
@@ -350,3 +342,6 @@ class FlashcardService:
             
         db.session.commit()
         self.logger.info(f"Saved {total_saved} flashcards to database for course {course_id}")
+        
+        
+
