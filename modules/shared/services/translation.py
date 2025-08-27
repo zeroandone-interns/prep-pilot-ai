@@ -85,3 +85,10 @@ class TranslationService:
             translations[lang] = self.translate_text(text, detected_lang, lang)
 
         return translations["en"], translations["fr"], translations["ar"]
+
+
+    def _translate_and_assign(self, text):
+        if not text:
+            return {"en": None, "fr": None, "ar": None}
+        en, fr, ar = self.translate_to_all_languages(text)
+        return {"en": en, "fr": fr, "ar": ar}
