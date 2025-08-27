@@ -1,5 +1,5 @@
 import boto3
-from langdetect import detect, DetectorFactory
+from langdetect import detect_langs, DetectorFactory
 from extensions import get_logger
 
 # Ensure consistent language detection
@@ -51,16 +51,33 @@ class TranslationService:
 
         return "".join(translated_chunks)
 
-    def translate_to_all_languages(self, text):
-        detected_lang = detect(text)
- 
-        if not isinstance(detected_lang, str):
-            detected_lang = str(detected_lang)
+    def detect_language(self, text, confidence_threshold=0.6):
+        """
+        Detect language using langdetect with confidence check.
+        Falls back to heuristics for Arabic and French.
+        """
+        detected_lang = "en"  # default fallback
+        try:
+            langs = detect_langs(text)
+            if langs and langs[0].prob >= confidence_threshold:
+                detected_lang = langs[0].lang[:2].lower()
+        except Exception:
+            detected_lang = "en"
 
-        detected_lang = detected_lang[:2].lower()
-
+        # Heuristic fallback if detected language is not allowed
         if detected_lang not in self.allowed_langs:
-            raise ValueError(f"\nDetected language '{detected_lang}' is not supported")
+            if any("\u0600" <= c <= "\u06ff" for c in text):
+                detected_lang = "ar"
+            elif any(c in "éèàç" for c in text):
+                detected_lang = "fr"
+            else:
+                detected_lang = "en"
+
+        return detected_lang
+
+    def translate_to_all_languages(self, text):
+        detected_lang = self.detect_language(text)
+        self.get_logger.info(f"Detected language: {detected_lang}")
 
         translations = {detected_lang: text}
 
