@@ -18,7 +18,7 @@ class S3Service:
                     f"[S3] Object '{object_key}' does not exist in bucket '{self.head_bucket_name}'"
                 )
                 raise ValueError(
-                    f"Object '{object_key}' does not exist in bucket '{self.head_bucket_name}'"
+                    f"[S3] Object '{object_key}' does not exist in bucket '{self.head_bucket_name}'"
                 )
             raise
 
@@ -26,7 +26,7 @@ class S3Service:
         obj = self.get_object_from_s3(s3_key)
         body = obj["Body"].read()
         content_type = obj["ContentType"]
-        self.logger.info(f"\nRead file from S3: {s3_key} with type: {content_type}")
+        self.logger.info(f"[S3] Read file from S3: {s3_key} with type: {content_type}")
 
         # Decode only for text formats
         if content_type.startswith("text/") or content_type in {
