@@ -97,9 +97,7 @@ class ChatbotService:
 
         print("Generated prompt:", prompt)
 
-        return self.bedrock.invoke_model_with_text(
-            prompt, temperature=0.5, max_tokens=4608
-        )
+        return self.bedrock.invoke_model_with_texttt(prompt)
 
     def handle_message(self, session_id, message):
         self.save_message(session_id, message, "User")

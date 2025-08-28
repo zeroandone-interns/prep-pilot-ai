@@ -68,9 +68,17 @@ class QuestionService:
         )
         saved_questions = []
 
+        lang_dettected = False
+        lang = ""
+
         for q in questions_data:
             try:
                 # Translate question, explanation, options, and correct answer
+                # if not lang_detected
+                #   question_texts = self._translate_and_assign(q.get("question"))
+                #   explanation_texts = self._translate_and_assign(q.get("explanation"))
+                #   lang
+                #
                 question_texts = self._translate_and_assign(q.get("question"))
                 explanation_texts = self._translate_and_assign(q.get("explanation"))
                 options = q.get("options", [None, None, None])

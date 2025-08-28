@@ -201,3 +201,23 @@ class BedrockService:
                     collected_text.append(chunk_data["delta"].get("text", ""))
 
         return "".join(collected_text)
+
+    def invoke_model_with_texttt(self, prompt):
+        max_tokens = 10000
+        temperature = 0.5
+        model_id = "amazon.nova-pro-v1:0"
+        conversation = [{"role": "user", "content": [{"text": prompt}]}]
+
+        try:
+            # Nova/Nova Lite models require converse and inferenceConfig
+            inference_config = {"maxTokens": max_tokens, "temperature": temperature}
+            response = self.client.converse(
+                modelId=model_id,
+                messages=conversation,
+                inferenceConfig=inference_config,
+            )
+            return response["output"]["message"]["content"][0]["text"]
+
+        except Exception as e:
+            self.logger.error(f"Error invoking model: {e}")
+            return {"error": str(e)}

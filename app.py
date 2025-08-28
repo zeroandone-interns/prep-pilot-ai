@@ -31,6 +31,11 @@ chatbot_routes.register_chatbot_routes(app)
 course_routes.register_course_routes(app)
 
 
+@app.route("/health", methods=["GET"])
+def healthcheck():
+    return jsonify(status="ok"), 200
+
+
 # ############################
 flashcard_service = FlashcardService()
 from extensions import get_logger

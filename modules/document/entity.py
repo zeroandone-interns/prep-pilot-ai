@@ -84,7 +84,6 @@ class Sections(db.Model):
     # questions = db.relationship("Questions", back_populates="section")
 
 
-
 class Paragraphs(db.Model):
     __tablename__ = "Paragraphs"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -127,7 +126,6 @@ class Questions(db.Model):
     # section = db.relationship("Sections", back_populates="questions")
 
 
-
 class FlashCards(db.Model):
     __tablename__ = "FlashCards"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -148,6 +146,7 @@ class Documents(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     s3_uri = db.Column(db.String)
     text = db.Column(db.String)
+    type = db.Column(db.String)
     course_id = db.Column(db.Integer, db.ForeignKey("Courses.id"), nullable=False)
 
     course = db.relationship("Courses", back_populates="documents")

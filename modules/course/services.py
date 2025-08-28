@@ -52,7 +52,7 @@ class CourseGenerationService:
             "nb_of_sections": course_data.nb_of_sections,
         }
 
-        self.logger.info(f"Retrieved course info: {course_info}")
+        # self.logger.info(f"[_get_course_details] Retrieved course info: {course_info}")
         return course_info
 
     def _get_course_documents(self, course_id, embedding, top_k=10):
@@ -66,25 +66,27 @@ class CourseGenerationService:
             .all()
         )
 
-        self.logger.info(
-            f"Retrieved {len(chunks)} chunks for course {course_id} by similarity"
-        )
+        # self.logger.info(
+        #     f"[_get_course_documents] Retrieved {len(chunks)} chunks for course {course_id} by similarity"
+        # )
         return chunks
 
     def _combine_course_content(self, documents):
         combined_text = "\n".join(doc.text_en for doc in documents if doc.text_en)
-        self.logger.info(f"Combined course content: {combined_text}")
+        # self.logger.info(
+        #     f"[_combine_course_content] Combined course content: {combined_text[:500]}"
+        # )
         return combined_text
 
     def _embed_course_info(self, course_info):
         text_to_embed = f"{course_info['title']}. {course_info['description']}"
-        self.logger.info(f"Embedding text: {text_to_embed}")
+        # self.logger.info(f"[_embed_course_info] Embedding text: {text_to_embed}")
         embedding = self.bedrock.generate_embedding(text_to_embed)
         return embedding
 
     # Bedrock Call Wrapper
     def bedrock_generate(self, prompt, max_tokens=10000, temperature=0.5):
-        self.logger.info(f"Calling Bedrock with prompt: {prompt}")
+        # self.logger.info(f"Calling Bedrock with prompt: {prompt}")
         try:
             response = self.bedrock.invoke_model_streaming(
                 prompt,
@@ -109,7 +111,7 @@ class CourseGenerationService:
             content=course_text,
         )
 
-        self.logger.info(f"Generated prompt for modules: {prompt}")
+        # self.logger.info(f"Generated prompt for modules: {prompt}")
         modules_data = self.bedrock_generate(prompt)
 
         if not isinstance(modules_data, list) or len(modules_data) == 0:
@@ -121,6 +123,7 @@ class CourseGenerationService:
 
     # Course Structure Generation
     def generate_course_structure(self, course_id):
+
         course_info = self._get_course_details(course_id)
         embeddings = self._embed_course_info(course_info)
         chunks = self._get_course_documents(course_id, embeddings, top_k=10)
@@ -128,7 +131,9 @@ class CourseGenerationService:
 
         # Step 1: Generate modules + sections + paragraphs
         modules_data = self._call_bedrock_for_modules(course_info, course_text)
-        self.logger.info(f"Generated modules data: {modules_data}")
+        self.logger.info(
+            f"[generate_course_structure] Generated modules data: {modules_data}"
+        )
 
         results = []
 
